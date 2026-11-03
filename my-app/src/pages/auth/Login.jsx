@@ -30,7 +30,7 @@ function Login() {
         }
       }
     } catch (err) {
-      if (err.code === "email_not_confirmed") {
+      if (err.code === "email_not_confirmed" || err.message === "Email not confirmed") {
         setError("Confirm your email before logging in. Check your inbox and spam folder for the confirmation link.");
       } else {
         setError(err.message || "Unable to log in. Please try again.");

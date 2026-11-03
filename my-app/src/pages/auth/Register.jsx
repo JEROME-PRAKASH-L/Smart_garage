@@ -54,9 +54,9 @@ function Register() {
         setSuccess("Check your email to confirm your account. After confirming, return here to log in.");
       }
     } catch (err) {
-      if (err.code === "over_email_send_rate_limit") {
+      if (err.code === "over_email_send_rate_limit" || err.message === "email rate limit exceeded") {
         setError("The confirmation email limit has been reached. Please wait before trying again. If you already confirmed your account, use Login.");
-      } else if (err.code === "email_address_not_authorized") {
+      } else if (err.code === "email_address_not_authorized" || err.message === "Email address not authorized") {
         setError("Account confirmation email is unavailable for this address. Please contact the garage for help.");
       } else {
         setError(err.message || "Unable to create your account. Please try again.");
