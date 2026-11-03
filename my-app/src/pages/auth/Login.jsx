@@ -2,8 +2,9 @@ import './Login.css'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import loginBg from "../../assets/login.jpg";
+import { supabase } from "../../lib/supabase";
 
-function Login({ setIsLoggedIn }) {
+function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,30 +18,19 @@ function Login({ setIsLoggedIn }) {
     const password = e.target.password.value;
 
     try {
-      const response = await fetch("https://smart-garage-2.onrender.com/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(), password,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setIsLoggedIn(true);
-
-        // 👇 role comes from DB now
-        if (data.user.role === "admin") {
+      if (error) throw error;
+      if (data.user) {
+        if (data.user.app_metadata?.role === "admin") {
           navigate("/admin");
         } else {
           navigate("/CoustomerDashboard");
         }
-      } else {
-        setError(data.message);
       }
     } catch (err) {
-      setError("Server error, please try again");
+      setError(err.message || "Unable to log in. Please try again.");
     }
 
     setLoading(false);
@@ -56,10 +46,10 @@ function Login({ setIsLoggedIn }) {
 
         <form className="login-form" onSubmit={handleLogin}>
           <label htmlFor="email">USER ID / EMAIL</label>
-          <input id="email" name="email" type="email" placeholder="Enter your email" />
+          <input id="email" name="email" type="email" placeholder="Enter your email" autoComplete="email" required />
 
           <label htmlFor="password" className="p">PASSWORD</label>
-          <input id="password" name="password" type="password" placeholder="Enter your password" />
+          <input id="password" name="password" type="password" placeholder="Enter your password" autoComplete="current-password" required />
 
           <button className="login" type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}

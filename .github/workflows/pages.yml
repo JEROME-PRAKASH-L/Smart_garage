@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm install --no-audit --no-fund && npm run build -- --base=/Smart_garage/
+      - run: npm ci --no-audit --no-fund && npm run lint && npm run build -- --base=/Smart_garage/
         working-directory: my-app
       - uses: actions/upload-pages-artifact@v3
         with:

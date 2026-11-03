@@ -1,5 +1,9 @@
 import "./AdminDashboard.css";
 import { useState, useEffect } from "react";
+import {
+  readBookings, readCustomers, readServices, readDoorstepBookings, readMessages,
+  updateBookingStatus, saveService, deleteService,
+} from "../../lib/garage";
 
 function AdminDashboard() {
   const [bookings, setBookings] = useState([]);
@@ -13,164 +17,121 @@ function AdminDashboard() {
   });
   const [doorstepOrders, setDoorstepOrders] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchBookings();
-    fetchCustomers();
-    fetchServices();
-    fetchDoorstepOrders();
-    fetchMessages();
+    let active = true;
+    Promise.all([readBookings(), readCustomers(), readServices(), readDoorstepBookings(), readMessages()])
+      .then(([allBookings, allCustomers, allServices, doorstep, allMessages]) => {
+        if (!active) return;
+        setBookings(allBookings);
+        setCustomers(allCustomers);
+        setServices(allServices);
+        setDoorstepOrders(doorstep);
+        setMessages(allMessages);
+      })
+      .catch(err => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const fetchBookings = async () => {
     try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/bookings/all");
-      const data = await res.json();
-      setBookings(data);
+      setBookings(await readBookings());
     } catch (err) {
-      console.log("Error fetching bookings:", err);
+      setError(err.message);
     }
     setLoading(false);
   };
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/bookings/customers");
-      const data = await res.json();
-      setCustomers(data);
-    } catch (err) {
-      console.log("Error fetching customers:", err);
-    }
-  };
-
   const fetchServices = async () => {
     try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/services/all");
-      const data = await res.json();
-      setServices(data);
+      setServices(await readServices());
     } catch (err) {
-      console.log("Error fetching services:", err);
+      setError(err.message);
     }
   };
 
   const fetchDoorstepOrders = async () => {
     try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/bookings/doorstep");
-      const data = await res.json();
-      setDoorstepOrders(data);
+      setDoorstepOrders(await readDoorstepBookings());
     } catch (err) {
-      console.log("Error fetching doorstep orders:", err);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/contact/messages");
-      const data = await res.json();
-      setMessages(data);
-    } catch (err) {
-      console.log("Error fetching messages:", err);
+      setError(err.message);
     }
   };
 
   const updateStatus = async (id, status) => {
     try {
-      const res = await fetch(`https://smart-garage-2.onrender.com/api/bookings/status/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        fetchBookings();
-        alert("Status updated successfully");
-      }
+      setError("");
+      await updateBookingStatus(id, status);
+      fetchBookings();
+      fetchDoorstepOrders();
+      alert("Status updated successfully");
     } catch (err) {
-      console.log("Error updating status:", err);
+      setError(err.message);
     }
   };
 
   const handleAccept = async (id) => {
     try {
-      const res = await fetch(`https://smart-garage-2.onrender.com/api/bookings/accept/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "inprogress" }),
-      });
-      if (res.ok) {
-        alert("Booking accepted");
-        fetchBookings();
-        fetchDoorstepOrders();
-      }
+      setError("");
+      await updateBookingStatus(id, "inprogress");
+      alert("Booking accepted");
+      fetchBookings();
+      fetchDoorstepOrders();
     } catch (err) {
-      console.log("Error:", err);
+      setError(err.message);
     }
   };
 
   const handleReject = async (id) => {
     if (window.confirm("Are you sure you want to reject this booking?")) {
       try {
-        const res = await fetch(`https://smart-garage-2.onrender.com/api/bookings/accept/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "rejected" }),
-        });
-        if (res.ok) {
-          alert("Booking rejected");
-          fetchBookings();
-        }
+        setError("");
+        await updateBookingStatus(id, "rejected");
+        alert("Booking rejected");
+        fetchBookings();
+        fetchDoorstepOrders();
       } catch (err) {
-        console.log("Error:", err);
+        setError(err.message);
       }
     }
   };
 
   const handleAddService = async () => {
     try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/services/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newService),
-      });
-      if (res.ok) {
-        alert("Service added successfully");
-        setShowAddService(false);
-        setNewService({ name: "", description: "", price: "", duration: "" });
-        fetchServices();
-      }
+      setError("");
+      await saveService(newService);
+      alert("Service added successfully");
+      setShowAddService(false);
+      setNewService({ name: "", description: "", price: "", duration: "" });
+      fetchServices();
     } catch (err) {
-      console.log("Error adding service:", err);
+      setError(err.message);
     }
   };
 
   const handleEditService = async () => {
     try {
-      const res = await fetch(`https://smart-garage-2.onrender.com/api/services/edit/${editService.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editService),
-      });
-      if (res.ok) {
-        alert("Service updated successfully");
-        setEditService(null);
-        fetchServices();
-      }
+      setError("");
+      await saveService(editService, editService.id);
+      alert("Service updated successfully");
+      setEditService(null);
+      fetchServices();
     } catch (err) {
-      console.log("Error editing service:", err);
+      setError(err.message);
     }
   };
 
   const handleDeleteService = async (id) => {
     if (window.confirm("Are you sure you want to delete this service?")) {
       try {
-        const res = await fetch(`https://smart-garage-2.onrender.com/api/services/delete/${id}`, {
-          method: "DELETE",
-        });
-        if (res.ok) {
-          alert("Service deleted");
-          fetchServices();
-        }
+        setError("");
+        await deleteService(id);
+        alert("Service deleted");
+        fetchServices();
       } catch (err) {
-        console.log("Error deleting service:", err);
+        setError(err.message);
       }
     }
   };
@@ -183,6 +144,7 @@ function AdminDashboard() {
 
   return (
     <div className="admin-dashboard">
+      {error && <p className="error-msg" role="alert">{error}</p>}
 
       {/* Welcome */}
       <div className="admin-welcome">

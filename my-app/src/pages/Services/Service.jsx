@@ -1,29 +1,24 @@
 import "./Service.css";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { readServices } from "../../lib/garage";
 
-function Services() {
+function Services({ user }) {
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    fetchServices();
+    let active = true;
+    readServices()
+      .then(data => { if (active) setServices(data); })
+      .catch(err => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
-  const fetchServices = async () => {
-    try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/services/all");
-      const data = await res.json();
-      setServices(data);
-    } catch (err) {
-      console.log("Error fetching services:", err);
-    }
-    setLoading(false);
-  };
-
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isAdmin = user && user.role === "admin";
 
   return (
     <div className="services-page">
@@ -32,6 +27,8 @@ function Services() {
         <h1>Our Services</h1>
         <p>Quality vehicle services at affordable prices</p>
       </div>
+
+      {error && <p className="error-msg" role="alert">{error}</p>}
 
       {loading ? (
         <p style={{ textAlign: "center", padding: "40px" }}>Loading services...</p>
@@ -47,14 +44,12 @@ function Services() {
                 <span className="price">₹{service.price}</span>
                 <span className="time">⏱ {service.duration}</span>
               </div>
-              {!isAdmin && (
-                <button
+              {!isAdmin && <button
                   className="book-now-btn"
                   onClick={() => navigate("/Bookservice")}
                 >
                   Book Now
-                </button>
-              )}
+                </button>}
             </div>
           ))}
         </div>

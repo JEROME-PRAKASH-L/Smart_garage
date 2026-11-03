@@ -1,13 +1,17 @@
 import { Link, useNavigate } from "react-router-dom";
 import "./Header.css";
+import { supabase } from "../../lib/supabase";
 
-function Header({ isLoggedIn, setIsLoggedIn }) {
+function Header({ user }) {
   const navigate = useNavigate();
+  const isLoggedIn = Boolean(user);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert(error.message);
+      return;
+    }
     navigate("/Login");
   };
 
@@ -15,7 +19,6 @@ const handleLogoClick = () => {
   navigate("/");
 };
 
-  const user = JSON.parse(localStorage.getItem("user"));
   const isAdmin = user && user.role === "admin";
 
   const getHomeLink = () => {

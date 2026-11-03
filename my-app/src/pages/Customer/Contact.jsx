@@ -1,5 +1,6 @@
 import "./Contact.css";
 import { useState } from "react";
+import { sendMessage } from "../../lib/garage";
 
 function Contact() {
   const [formData, setFormData] = useState({
@@ -10,6 +11,7 @@ function Contact() {
   });
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,20 +20,15 @@ function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+    setSuccess(false);
 
     try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/contact/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
+      await sendMessage(formData);
         setSuccess(true);
         setFormData({ name: "", email: "", phone: "", message: "" });
-      }
     } catch (err) {
-      console.log("Error sending message:", err);
+      setError(err.message || "Unable to send your message. Please try again.");
     }
 
     setLoading(false);
@@ -85,6 +82,7 @@ function Contact() {
         {/* Right - Contact Form */}
         <div className="contact-form-box">
           <h2>Send a Message</h2>
+          {error && <p className="error-msg" role="alert">{error}</p>}
 
           {success && (
             <div className="success-msg">

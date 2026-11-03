@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
 import "./Bookservice.css";
+import { useNavigate } from "react-router-dom";
+import { createBooking, readServices } from "../../lib/garage";
 
-function Bookservice() {
+function Bookservice({ user }) {
+  const navigate = useNavigate();
   const [pickupType, setPickupType] = useState("self");
   const [deliveryType, setDeliveryType] = useState("self-collect");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [services, setServices] = useState([]);
 
   const [formData, setFormData] = useState({
-    customer_name: "",
-    phone: "",
+    customer_name: user.name,
+    phone: user.mobile,
     vehicle_number: "",
     vehicle_type: "",
     vehicle_brand: "",
@@ -27,18 +29,12 @@ function Bookservice() {
   });
 
   useEffect(() => {
-    fetchServices();
+    let active = true;
+    readServices()
+      .then(data => { if (active) setServices(data); })
+      .catch(err => { if (active) setError(err.message); });
+    return () => { active = false; };
   }, []);
-
-  const fetchServices = async () => {
-    try {
-      const res = await fetch("https://smart-garage-2.onrender.com/api/services/all");
-      const data = await res.json();
-      setServices(data);
-    } catch (err) {
-      console.log("Error fetching services:", err);
-    }
-  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -79,27 +75,15 @@ function Bookservice() {
     setError("");
 
     try {
-      const response = await fetch("https://smart-garage-2.onrender.com/api/bookings/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await createBooking({
           ...formData,
           pickup_type: pickupType,
           delivery_type: deliveryType,
-          address: `${formData.address}, ${formData.city}, ${formData.pincode}`,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setStep(5);
-      } else {
-        setError(data.message);
-      }
+          address: [formData.address, formData.city, formData.pincode].filter(Boolean).join(', '),
+      }, user.id);
+      setStep(5);
     } catch (err) {
-      setError("Server error, please try again");
+      setError(err.message || "Unable to save your booking. Please try again.");
     }
 
     setLoading(false);
@@ -274,7 +258,7 @@ function Bookservice() {
             <h3>Booking Confirmed!</h3>
             <p>Your vehicle service has been booked successfully.</p>
             <p>We will contact you shortly to confirm your appointment.</p>
-            <button className="confirm-btn" onClick={() => window.location.href = "/"}>
+            <button className="confirm-btn" onClick={() => navigate("/CoustomerDashboard")}>
               Go to Home
             </button>
           </div>

@@ -2,9 +2,8 @@ import "./Home.css";
 import { useNavigate } from "react-router-dom";
 import { IoCalendarOutline, IoTimeOutline, IoShieldCheckmarkOutline, IoCardOutline, IoThumbsUpOutline } from "react-icons/io5";
 import heroImg from "../../assets/home.jpg";
-function Home() {
+function Home({ user }) {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
   const isAdmin = user && user.role === "admin";
 
   return (

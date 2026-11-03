@@ -1,6 +1,7 @@
 import './Register.css'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 
 function Register() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ function Register() {
     mobile: "",
   });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -22,6 +24,7 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (formData.email !== formData.confirmEmail) {
       setError("Emails do not match!");
@@ -31,28 +34,27 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch("https://smart-garage-2.onrender.com/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          dob: formData.dob,
-          mobile: formData.mobile,
-        }),
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password,
+        options: {
+          emailRedirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).href,
+          data: {
+            smart_garage: true,
+            name: formData.name.trim(),
+            dob: formData.dob || null,
+            mobile: formData.mobile,
+          },
+        },
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Registered Successfully! Please Login ✅");
-        navigate("/Login");
+      if (error) throw error;
+      if (data.session) {
+        navigate("/CoustomerDashboard");
       } else {
-        setError(data.message);
+        setSuccess("Check your email to confirm your account. After confirming, return here to log in.");
       }
     } catch (err) {
-      setError("Server error, please try again");
+      setError(err.message || "Unable to create your account. Please try again.");
     }
 
     setLoading(false);
@@ -68,6 +70,7 @@ function Register() {
         </div>
 
         {error && <p className="error-msg">❌ {error}</p>}
+        {success && <p role="status">{success}</p>}
 
         <form className="register-form" onSubmit={handleSubmit}>
 
@@ -89,7 +92,7 @@ function Register() {
               <input
                 id="register-mobile"
                 name="mobile"
-                type="number"
+                type="tel"
                 placeholder="Enter your mobile number"
                 onChange={handleChange}
               />
@@ -130,6 +133,8 @@ function Register() {
                 id="register-password"
                 name="password"
                 type="password"
+                minLength={6}
+                autoComplete="new-password"
                 placeholder="Enter your password"
                 onChange={handleChange}
                 required
@@ -141,6 +146,7 @@ function Register() {
                 id="register-dob"
                 name="dob"
                 type="date"
+                max={new Date().toLocaleDateString('en-CA')}
                 onChange={handleChange}
               />
             </div>

@@ -1,29 +1,24 @@
 import './CoustomerDashboard.css'
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { readMyBookings } from "../../lib/garage";
 
-function CustomerDashboard() {
+function CustomerDashboard({ user }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   
-  const user = JSON.parse(localStorage.getItem("user"));
   const userName = user ? user.name : "Customer";
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    try {
-      const response = await fetch(`https://smart-garage-2.onrender.com/api/bookings/mybookings/${userName}`);
-      const data = await response.json();
-      setBookings(data);
-    } catch (err) {
-      console.log("Error fetching bookings:", err);
-    }
-    setLoading(false);
-  };
+    let active = true;
+    readMyBookings(user.id)
+      .then(data => { if (active) setBookings(data); })
+      .catch(err => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [user.id]);
 
 
   const total = bookings.length;
@@ -63,6 +58,7 @@ function CustomerDashboard() {
 
       <div className="section">
         <h3>Recent Bookings</h3>
+        {error && <p className="error-msg" role="alert">{error}</p>}
 
         {loading ? (
           <p>Loading bookings...</p>
