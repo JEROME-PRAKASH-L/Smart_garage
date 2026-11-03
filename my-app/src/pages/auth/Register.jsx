@@ -54,7 +54,13 @@ function Register() {
         setSuccess("Check your email to confirm your account. After confirming, return here to log in.");
       }
     } catch (err) {
-      setError(err.message || "Unable to create your account. Please try again.");
+      if (err.code === "over_email_send_rate_limit") {
+        setError("The confirmation email limit has been reached. Please wait before trying again. If you already confirmed your account, use Login.");
+      } else if (err.code === "email_address_not_authorized") {
+        setError("Account confirmation email is unavailable for this address. Please contact the garage for help.");
+      } else {
+        setError(err.message || "Unable to create your account. Please try again.");
+      }
     }
 
     setLoading(false);
@@ -69,7 +75,7 @@ function Register() {
           <p className="register-subtitle">Fill in your details to get started</p>
         </div>
 
-        {error && <p className="error-msg">❌ {error}</p>}
+        {error && <p className="error-msg" role="alert">❌ {error}</p>}
         {success && <p role="status">{success}</p>}
 
         <form className="register-form" onSubmit={handleSubmit}>

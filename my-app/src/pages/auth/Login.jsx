@@ -30,7 +30,11 @@ function Login() {
         }
       }
     } catch (err) {
-      setError(err.message || "Unable to log in. Please try again.");
+      if (err.code === "email_not_confirmed") {
+        setError("Confirm your email before logging in. Check your inbox and spam folder for the confirmation link.");
+      } else {
+        setError(err.message || "Unable to log in. Please try again.");
+      }
     }
 
     setLoading(false);
@@ -42,7 +46,7 @@ function Login() {
         <h1>LOGIN HERE</h1>
         <p className="login-subtitle">Enter your details to continue</p>
 
-        {error && <p className="error-msg">❌ {error}</p>}
+        {error && <p className="error-msg" role="alert">❌ {error}</p>}
 
         <form className="login-form" onSubmit={handleLogin}>
           <label htmlFor="email">USER ID / EMAIL</label>
