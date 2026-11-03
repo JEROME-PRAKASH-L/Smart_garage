@@ -1,0 +1,24 @@
+name: Deploy Smart Garage
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund && npm run build -- --base=/Smart_garage/
+        working-directory: my-app
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: my-app/dist
+      - uses: actions/deploy-pages@v4
